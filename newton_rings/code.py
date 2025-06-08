@@ -33,7 +33,6 @@ def wavelength_to_rgb(wave_length):
         G = 0.0
         B = 0.0
 
-    # intensity correction
     if w >= 380 and w < 420:
         factor = 0.3 + 0.7 * (w - 380) / (420 - 380)
     elif w >= 420 and w <= 700:
@@ -46,26 +45,64 @@ def wavelength_to_rgb(wave_length):
     R = (R * factor) ** .8
     G = (G * factor) ** .8
     B = (B * factor) ** .8
-
-    print(R, G, B)
-
     return [R, G, B]
 
 
 def intensity(r, R, wave_length):
+    # print(r, R, wave_length)
     return 1 / 2 * (1 + round(math.cos((2 * math.pi * r ** 2) / (wave_length * R) + math.pi), 10))
 
 
 def quasi_monochromatic_intensity(r, R, wave_length, spectrum_width):
-    N = 20
-    delta = spectrum_width / N
+    K = 10
+    delta = spectrum_width / K
     summa = 0
-    for i in range(N):
+    for i in range(K):
         current_length = wave_length - spectrum_width / 2 + delta * i
-        summa += intensity(r, R, current_length)
-    return summa / N
+        current_i = intensity(r, R, current_length)
+        summa += current_i
+
+    return summa / K
+
+def wide_intensity(r, R, left, right):
+    # left = 380 * 10 ** -9 # 380 * 10 ** -9
+    # right = 780 * 10 ** -9 # 750 * 10 ** -9
+    P = 10
+    delta = (right - left) / P
+    lengths = [left + i * delta for i in range(P + 1)]
+    I = [[0 for _ in range(N)] for _ in range(N)]
+    image = [[[0 for _ in range(3)] for _ in range(N)] for _ in range(N)]
+    for current_length in lengths:
+        for i in range(N):
+            for j in range(N):
+                current_intensity = intensity(r[i][j], R, current_length)
+                I[i][j] += current_intensity
+                current_color = wavelength_to_rgb(current_length * 10 ** 9)
+                for k in range(3):
+                    image[i][j][k] += current_intensity * current_color[k]
+
+    mx = -1
+    for i in range(N):
+        for j in range(N):
+            I[i][j] /= P
+            for k in range(3):
+                mx = max(mx, image[i][j][k])
+    for i in range(N):
+        for j in range(N):
+            for k in range(3):
+                image[i][j][k] /= mx
+
+    return I, image
 
 R = float(input("Радиус линзы: "))
+
+# is_white = int(input("Белый свет(0 или 1)?: "))
+# if is_white == 0:
+#     is_white = False
+# else:
+#     is_white = True
+
+# if is_white is False:
 wave_length = float(input("Середина спектра(нм): "))
 spectrum_width = float(input("Ширина спектра(нм): "))
 wave_length *= 10 ** (-9)
@@ -74,9 +111,9 @@ spectrum_width *= 10 ** (-9)
 # wave_length = 460 * 10 ** (-9)
 # spectrum_width = 0 # 30 * 10 ** (-9)
 
-W = 4
+W = 3
 width = W * 10 ** (-3)
-N = 1000
+N = 500
 dt = 2 * width / N
 x = []
 y = []
@@ -89,20 +126,31 @@ for i in range(N):
         r[i][j] = (y[i] ** 2 + x[j] ** 2) ** .5
 
 I = [[0 for _ in range(N)] for _ in range(N)]
-
-for i in range(N):
-    for j in range(N):
-        if spectrum_width == 0:
-            I[i][j] = intensity(r[i][j], R, wave_length)
-        else:
-            I[i][j] = quasi_monochromatic_intensity(r[i][j], R, wave_length, spectrum_width)
-
-color = wavelength_to_rgb(wave_length * 10 ** 9)
 image = [[[0 for _ in range(3)] for _ in range(N)] for _ in range(N)]
-for i in range(N):
-    for j in range(N):
-        for k in range(3):
-            image[i][j][k] = I[i][j] * color[k]
+# print("IS WHITE", is_white)
+# if is_white is False:
+# color = wavelength_to_rgb(wave_length * 10 ** 9)
+if spectrum_width == 0:
+    for i in range(N):
+        for j in range(N):
+            if spectrum_width == 0:
+                I[i][j] = intensity(r[i][j], R, wave_length)
+            else:
+                I[i][j] = quasi_monochromatic_intensity(r[i][j], R, wave_length, spectrum_width)
+
+    color = wavelength_to_rgb(wave_length * 10 ** 9)
+    image = [[[0 for _ in range(3)] for _ in range(N)] for _ in range(N)]
+    for i in range(N):
+        for j in range(N):
+            for k in range(3):
+                image[i][j][k] = I[i][j] * color[k]
+else:
+    left = wave_length - spectrum_width / 2
+    right = wave_length + spectrum_width / 2
+    I, image = wide_intensity(r, R, left, right)
+# else:
+#     I, image = white_intensity(r, R)
+
 plt.subplot(1, 2, 1)
 plt.imshow(image, extent=[-W, W, -W, W])
 plt.title("Кольца Ньютона")
