@@ -50,7 +50,7 @@ def wavelength_to_rgb(wave_length):
 
 def intensity(r, R, wave_length):
     # print(r, R, wave_length)
-    return 1 / 2 * (1 + round(math.cos((2 * math.pi * r ** 2) / (wave_length * R) + math.pi), 10))
+    return 1 / 2 * (1 + round(math.cos((2 * math.pi * r ** 2) / (wave_length * R) + math.pi * is_reflected), 10))
 
 
 def quasi_monochromatic_intensity(r, R, wave_length, spectrum_width):
@@ -94,7 +94,14 @@ def wide_intensity(r, R, left, right):
 
     return I, image
 
-R = float(input("Радиус линзы: "))
+which_type =  -1
+while not (which_type == 1 or which_type == 2):
+    which_type = int(input("Интерференционная картина в отраженном(1) или прошедшем(2) свете?: "))
+is_reflected = 0
+if which_type == 1:
+    is_reflected = 1
+
+R = float(input("Радиус линзы(м): "))
 
 # is_white = int(input("Белый свет(0 или 1)?: "))
 # if is_white == 0:
